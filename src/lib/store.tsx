@@ -474,10 +474,21 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
       if (updateError) throw updateError;
 
-      // 2. Notify Buyer
+      // 2. Notify Opposite Party
+      const isSellerAction = state.currentUser?.id === order.sellerId;
+      const targetUserId = isSellerAction ? order.buyerId : order.sellerId;
+      const actorName = state.currentUser?.name || 'Someone';
+      
+      let notificationMessage = `Your order for ${order.productTitle} is now ${status.toLowerCase()}`;
+      if (!isSellerAction && status === 'COMPLETED') {
+        notificationMessage = `${actorName} marked your product ${order.productTitle} as received. Transaction completed!`;
+      } else if (!isSellerAction && status === 'CANCELLED') {
+        notificationMessage = `${actorName} cancelled their order for ${order.productTitle}.`;
+      }
+
       await supabase.from('notifications').insert([{
-        user_id: order.buyerId,
-        message: `Your order for ${order.productTitle} is now ${status.toLowerCase()}`,
+        user_id: targetUserId,
+        message: notificationMessage,
         is_read: false,
         type: 'ORDER_UPDATE'
       }]);

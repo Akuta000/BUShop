@@ -195,6 +195,20 @@ export function SellerHubView() {
                       <p className="text-[9px] font-black uppercase tracking-widest text-editorial-text/30 mt-0.5 whitespace-nowrap">
                         ₱{order.totalPrice} • {order.paymentMethod}
                       </p>
+                      <div className="flex gap-1 mt-2">
+                        {['PENDING', 'CONFIRMED', 'READY', 'COMPLETED'].map((s) => {
+                          const statusOrder = ['PENDING', 'CONFIRMED', 'READY', 'COMPLETED', 'CANCELLED'];
+                          const currentIdx = statusOrder.indexOf(order.status);
+                          const stepIdx = statusOrder.indexOf(s as any);
+                          const isDone = order.status !== 'CANCELLED' && currentIdx >= stepIdx;
+                          return (
+                            <div 
+                              key={s} 
+                              className={`h-1 w-6 rounded-full transition-all duration-500 ${isDone ? 'bg-primary' : 'bg-black/5'}`} 
+                            />
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">

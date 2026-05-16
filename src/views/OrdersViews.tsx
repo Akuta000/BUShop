@@ -78,6 +78,38 @@ export function OrdersView({ initialTab }: { initialTab?: 'BUYING' | 'SELLING' }
                     <span className="text-[8px] sm:text-[10px] text-editorial-text/30 font-black uppercase tracking-widest leading-none">Record #{order.id.slice(-5)}</span>
                   </div>
                   <h3 className="text-xl sm:text-2xl font-serif font-black text-editorial-text group-hover:text-primary transition-colors italic leading-tight">{order.productTitle}</h3>
+                  
+                  {/* Visual Progress Tracker */}
+                  <div className="mt-6 mb-4">
+                    <div className="flex justify-between items-center relative gap-2">
+                      <div className="absolute top-1/2 left-0 w-full h-[1px] bg-black/5 -translate-y-1/2 z-0" />
+                      {[
+                        { status: 'PENDING', label: 'Ordered', icon: Clock },
+                        { status: 'CONFIRMED', label: 'Confirmed', icon: CheckCircle2 },
+                        { status: 'READY', label: 'Ready', icon: Package },
+                        { status: 'COMPLETED', label: 'Received', icon: Truck },
+                      ].map((step) => {
+                        const statusOrder = ['PENDING', 'CONFIRMED', 'READY', 'COMPLETED', 'CANCELLED'];
+                        const currentIdx = statusOrder.indexOf(order.status);
+                        const stepIdx = statusOrder.indexOf(step.status as any);
+                        const isCompleted = order.status === 'CANCELLED' ? false : currentIdx >= stepIdx;
+                        const isCurrent = order.status === step.status;
+
+                        return (
+                          <div key={step.status} className="relative z-10 flex flex-col items-center">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-500 ${
+                              isCompleted ? 'bg-primary text-white scale-110 shadow-lg shadow-primary/20' : 'bg-editorial-bg text-editorial-text/20'
+                            } ${isCurrent ? 'ring-4 ring-primary/10' : ''}`}>
+                              <step.icon size={14} strokeWidth={isCurrent ? 3 : 2} />
+                            </div>
+                            <span className={`text-[7px] font-black uppercase tracking-widest mt-2 ${isCompleted ? 'text-editorial-text' : 'text-editorial-text/20'}`}>
+                              {step.label}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                   <div className="flex flex-wrap items-end gap-x-4 sm:gap-x-6 gap-y-2 mt-4">
                     <div className="flex items-center gap-2 text-[8px] sm:text-[10px] text-editorial-text/50 font-black uppercase tracking-widest bg-black/5 px-2.5 py-1.5 rounded-lg">
                       <Package size={12}/> 

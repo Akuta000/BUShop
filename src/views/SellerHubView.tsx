@@ -307,10 +307,14 @@ function AddProductModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+    <div 
+      className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
+      onClick={onClose}
+    >
        <motion.div 
          initial={{ scale: 0.9, opacity: 0, y: 40 }} 
          animate={{ scale: 1, opacity: 1, y: 0 }} 
+         onClick={(e) => e.stopPropagation()}
          className="bg-editorial-bg w-full max-w-xl rounded-[40px] sm:rounded-[60px] p-8 sm:p-12 shadow-3xl border border-white/20 relative my-8"
        >
           <div className="absolute top-8 left-1/2 -translate-x-1/2 w-24 h-1 bg-black/5 rounded-full" />

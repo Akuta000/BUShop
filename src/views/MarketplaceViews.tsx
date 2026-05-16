@@ -145,11 +145,15 @@ export function HomeView({ onSelectProduct, onTabChange }: { onSelectProduct: (p
 
       <AnimatePresence>
         {showSellerConfirm && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-md">
+          <div 
+            className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-md"
+            onClick={() => setShowSellerConfirm(false)}
+          >
             <motion.div 
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
               className="bg-white max-w-md w-full rounded-[48px] p-12 shadow-3xl text-center"
             >
               <div className="w-20 h-20 bg-primary/10 text-primary rounded-3xl flex items-center justify-center mx-auto mb-8">
@@ -344,9 +348,13 @@ export function ProductDetail({ product, onClose }: { product: Product; onClose:
   }
 
   return (
-    <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/40 backdrop-blur-sm sm:flex sm:items-center sm:justify-center p-0 sm:p-4">
+    <div 
+      className="fixed inset-0 z-[60] overflow-y-auto bg-black/40 backdrop-blur-sm sm:flex sm:items-center sm:justify-center p-0 sm:p-4"
+      onClick={onClose}
+    >
       <motion.div
         layoutId={product.id}
+        onClick={(e) => e.stopPropagation()}
         className="bg-white w-full max-w-4xl min-h-screen sm:min-h-0 sm:rounded-[40px] overflow-hidden shadow-2xl relative"
       >
         <button onClick={onClose} className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 bg-white/60 backdrop-blur rounded-full text-gray-900 z-10 shadow-sm">

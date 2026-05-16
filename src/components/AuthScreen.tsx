@@ -94,9 +94,37 @@ export function AuthScreen() {
                   </div>
                 )}
                 {(error || profileError) && (
-                  <div className="bg-red-50 border border-red-200 text-red-600 px-6 py-4 rounded-3xl text-xs font-bold uppercase tracking-widest flex flex-col gap-4">
-                    <span>{error || profileError}</span>
-                    {profileError && (
+                  <div className="bg-red-50 border border-red-200 text-red-600 px-6 py-4 rounded-3xl text-sm font-medium flex flex-col gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5">
+                        <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        {profileError === 'PROFILE_MISSING' ? (
+                          <div className="space-y-1">
+                            <p className="font-bold uppercase text-[10px] tracking-widest leading-none mb-1">Identity Sync Required</p>
+                            <p className="text-xs leading-relaxed opacity-80 normal-case font-normal">
+                              Your authentication exists, but your marketplace profile is missing. 
+                              This happens if database tables were reset. 
+                              Please complete your registration to fix this.
+                            </p>
+                          </div>
+                        ) : (
+                          <span>{error || profileError}</span>
+                        )}
+                      </div>
+                    </div>
+                    {profileError === 'PROFILE_MISSING' && (
+                      <button
+                        type="button"
+                        onClick={() => setIsLogin(false)}
+                        className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                      >
+                        Complete Profile Now
+                      </button>
+                    ) || profileError && (
                       <button
                         type="button"
                         onClick={() => setIsLogin(false)}

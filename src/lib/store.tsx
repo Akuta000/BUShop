@@ -211,7 +211,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       if (error) {
         console.error('Profile fetch error:', error);
         if (error.code === 'PGRST116') {
-           setProfileError('Account found but profile is missing. This usually happens if the database was cleared but not the auth users. Please sign up again or contact support.');
+           setProfileError('PROFILE_MISSING');
            setState(prev => ({ ...prev, currentUser: null }));
         }
         return;
@@ -270,32 +270,40 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   const register = async (name: string, email: string, password: string, username: string, role: UserRole, schoolId: string) => {
     try {
-      // 1. Sign up user
-      const { data, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-      });
+      let userId: string | undefined;
 
-      let userId = data.user?.id;
+      // 1. Check if we already have a session for this email
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData.session?.user?.email === email) {
+        userId = sessionData.session.user.id;
+      } else {
+        // 2. Try to Sign up user
+        const { data: signUpData, error: authError } = await supabase.auth.signUp({
+          email,
+          password,
+        });
 
-      if (authError) {
-        if (authError.message.includes('User already registered')) {
-          // If already registered, try to sign in to get the ID
-          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-          if (signInError) {
-            return { error: `This email is already registered. If it is yours, please login. If you believe this is an error, please contact support. (Auth Error: ${signInError.message})` };
+        userId = signUpData.user?.id;
+
+        if (authError) {
+          if (authError.message.includes('User already registered')) {
+            // If already registered, try to sign in to get the ID
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+            if (signInError) {
+              return { error: `This email is already registered. If it is yours, please login and complete your profile. (Auth Error: ${signInError.message})` };
+            }
+            userId = signInData.user?.id;
+          } else if (authError.message.includes('Failed to fetch')) {
+            return { error: 'Connection Error: Please check your Supabase Secrets configuration.' };
+          } else {
+            return { error: authError.message };
           }
-          userId = signInData.user?.id;
-        } else if (authError.message.includes('Failed to fetch')) {
-          return { error: 'Connection Error: Please check your Supabase Secrets configuration.' };
-        } else {
-          return { error: authError.message };
         }
       }
 
       if (!userId) return { error: 'Failed to identify user. Please try again.' };
 
-      // 2. Create profile (upsert case for zombie users)
+      // 3. Create profile (upsert case for zombie users or profile completion)
       const { error: profileError } = await supabase
         .from('profiles')
         .upsert({
@@ -307,7 +315,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         });
 
       if (profileError) {
-        return { error: `Profile Creation Failed: ${profileError.message}. Make sure you ran the SQL schema in Supabase with RLS policies enabled.` };
+        if (profileError.message.includes('violates row-level security')) {
+          return { error: 'Profile Creation Error: Permission Denied. Please ensure you have enabled the RLS policies in your Supabase SQL editor.' };
+        }
+        return { error: `Profile Creation Failed: ${profileError.message}` };
       }
 
       // Re-fetch profile to update state

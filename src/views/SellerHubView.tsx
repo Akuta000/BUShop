@@ -62,8 +62,17 @@ export function SellerHubView() {
             {sellingOrders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED').length}
           </h3>
           <div className="flex items-center space-x-3 text-primary text-[10px] font-black uppercase tracking-widest">
-            <Clock size={14} />
-            <span>Awaiting Authorization</span>
+            {sellingOrders.some(o => o.status === 'PENDING') ? (
+              <>
+                <Clock size={14} />
+                <span>Awaiting Authorization</span>
+              </>
+            ) : (
+              <>
+                <Package size={14} />
+                <span>Processing Order Flow</span>
+              </>
+            )}
           </div>
         </div>
 
@@ -124,18 +133,22 @@ export function SellerHubView() {
                     </div>
 
                     <div className="flex items-end justify-between pt-4 border-t border-black/5">
-                      <div>
+                      <div className="flex flex-col items-center">
                         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-editorial-text/20 mb-1">Current Stock</p>
-                        <p className={`text-xl font-serif font-black italic ${product.stock < 5 ? 'text-primary' : 'text-editorial-text'}`}>
-                          {product.stock} Units
-                        </p>
+                        <div className="flex items-center space-x-3">
+                          <p className={`text-xl font-serif font-black italic ${product.stock < 5 ? 'text-primary' : 'text-editorial-text'}`}>
+                            {product.stock} Units
+                          </p>
+                          <button 
+                            onClick={() => updateProduct(product.id, { stock: product.stock + 10 })}
+                            className="bg-black text-white p-2 rounded-xl hover:bg-primary transition-all active:scale-95 flex items-center space-x-2"
+                            title="Restock +10"
+                          >
+                            <Plus size={16} />
+                            <span className="text-[8px] font-black uppercase tracking-widest leading-none">Restock</span>
+                          </button>
+                        </div>
                       </div>
-                      <button 
-                        onClick={() => updateProduct(product.id, { stock: product.stock + 10 })}
-                        className="bg-editorial-text text-white p-4 rounded-2xl hover:bg-black transition-all active:scale-95"
-                      >
-                        <Plus size={20} />
-                      </button>
                     </div>
                   </div>
 
@@ -182,6 +195,13 @@ export function SellerHubView() {
                         className="bg-primary text-white text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl hover:bg-black transition-all shadow-lg shadow-primary/20"
                       >
                         Confirm
+                      </button>
+                    ) : order.status === 'CONFIRMED' ? (
+                      <button 
+                        onClick={() => updateOrderStatus(order.id, 'READY')}
+                        className="bg-primary text-white text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl hover:bg-black transition-all shadow-lg shadow-primary/20"
+                      >
+                        Ready
                       </button>
                     ) : (
                       <div className="relative">

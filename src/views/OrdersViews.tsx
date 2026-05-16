@@ -111,6 +111,18 @@ export function OrdersView({ initialTab }: { initialTab?: 'BUYING' | 'SELLING' }
                       </div>
                     ) : (
                       <>
+                        {(order.status === 'READY' || order.status === 'CONFIRMED') && (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateOrderStatus(order.id, 'COMPLETED');
+                            }}
+                            className="bg-primary text-white font-black uppercase tracking-widest px-6 py-4 rounded-full text-[10px] hover:bg-black transition-all flex items-center space-x-2 shadow-xl shrink-0"
+                          >
+                            <CheckCircle2 size={16} />
+                            <span>Mark Received</span>
+                          </button>
+                        )}
                         {(order.status === 'PENDING' || order.status === 'CONFIRMED') && (
                           <button 
                             onClick={(e) => {
@@ -124,7 +136,8 @@ export function OrdersView({ initialTab }: { initialTab?: 'BUYING' | 'SELLING' }
                           </button>
                         )}
                         <button className="bg-editorial-text text-white font-black uppercase tracking-widest px-8 py-4 rounded-full text-[10px] hover:bg-black transition-all flex items-center space-x-3 shadow-xl">
-                           <span>Review Log</span>
+                           <span className="hidden sm:inline">Review Log</span>
+                           <span className="sm:hidden">Log</span>
                            <ChevronRight size={16} />
                         </button>
                       </>

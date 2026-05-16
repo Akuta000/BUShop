@@ -18,10 +18,21 @@ export function AuthScreen() {
   const [role, setRole] = useState<UserRole>('BUYER');
   const [schoolId, setSchoolId] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const { login, register } = useStore();
+  const { login, register, isAuthLoading, profileError } = useStore();
   const isConfigured = !!import.meta.env.VITE_SUPABASE_URL && 
                       !!import.meta.env.VITE_SUPABASE_ANON_KEY && 
                       !import.meta.env.VITE_SUPABASE_URL.includes('placeholder.supabase.co');
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-editorial-bg flex items-center justify-center p-4">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-editorial-text/30">Syncing Identity...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (import.meta.env.DEV) {
     console.log('Auth Configuration:', { isConfigured, url: import.meta.env.VITE_SUPABASE_URL });
@@ -82,9 +93,18 @@ export function AuthScreen() {
                     <span>Archive Offline: Missing Supabase configuration in .env or Secrets.</span>
                   </div>
                 )}
-                {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-600 px-6 py-4 rounded-3xl text-xs font-bold uppercase tracking-widest">
-                    {error}
+                {(error || profileError) && (
+                  <div className="bg-red-50 border border-red-200 text-red-600 px-6 py-4 rounded-3xl text-xs font-bold uppercase tracking-widest flex flex-col gap-4">
+                    <span>{error || profileError}</span>
+                    {profileError && (
+                      <button
+                        type="button"
+                        onClick={() => setIsLogin(false)}
+                        className="bg-red-600 text-white px-4 py-2 rounded-full text-[8px] self-start"
+                      >
+                        Fix Account / Recreate Profile
+                      </button>
+                    )}
                   </div>
                 )}
                 {!isLogin && (

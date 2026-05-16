@@ -18,6 +18,8 @@ interface AppState {
 }
 
 interface AppContextType extends AppState {
+  isAuthLoading: boolean;
+  profileError: string | null;
   login: (email: string, password: string) => Promise<{ error: string | null }>;
   logout: () => Promise<void>;
   register: (name: string, email: string, password: string, username: string, role: UserRole, schoolId: string) => Promise<{ error: string | null }>;
@@ -47,14 +49,20 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     };
   });
 
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
   const isSupabaseConfigured = import.meta.env.VITE_SUPABASE_URL && 
                               !import.meta.env.VITE_SUPABASE_URL.includes('placeholder.supabase.co');
 
   useEffect(() => {
     // 1. Initial Auth Check
+    setIsAuthLoading(true);
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfile(session.user.id).finally(() => setIsAuthLoading(false));
+      } else {
+        setIsAuthLoading(false);
       }
     });
 
@@ -93,13 +101,14 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
-        fetchProfile(session.user.id);
+        await fetchProfile(session.user.id);
         if (isSupabaseConfigured) fetchInitialData();
       } else {
         setState(prev => ({ ...prev, currentUser: null }));
       }
+      setIsAuthLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -189,6 +198,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = async (userId: string) => {
     if (!isSupabaseConfigured) return;
+    setProfileError(null);
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -200,12 +210,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('Profile fetch error:', error);
-        // If the query worked but no data was found, and there was an error
-        if (error.code === 'PGRST116') { // code for "no rows found" with .single()
-           console.warn('No profile found for authenticated user. Redirecting to register or fixing state.');
-           // We might want to alert if they just tried to login
+        if (error.code === 'PGRST116') {
+           setProfileError('Account found but profile is missing. This usually happens if the database was cleared but not the auth users. Please sign up again or contact support.');
            setState(prev => ({ ...prev, currentUser: null }));
-           return;
         }
         return;
       }
@@ -229,11 +236,27 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error?.message?.includes('Failed to fetch')) {
-        return { error: 'Connection Error: Please check if VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are correctly set in the Secrets panel.' };
+      const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        if (error.message.includes('Failed to fetch')) {
+          return { error: 'Connection Error: Please check your Supabase Secrets configuration.' };
+        }
+        return { error: error.message };
       }
-      return { error: error?.message || null };
+
+      if (authData.user) {
+        // Wait for profile fetch to complete
+        await fetchProfile(authData.user.id);
+        
+        // If profile is still null after login and fetch, it means PGRST116 happened
+        const currentSession = await supabase.auth.getSession();
+        if (currentSession.data.session && !state.currentUser) {
+           // This means the user exists in Auth but has no profile row
+           return { error: 'Your account exists but your profile was not found. Try signing up with your details again to recreate your profile.' };
+        }
+      }
+
+      return { error: null };
     } catch (err: any) {
       console.error('Login error:', err);
       return { error: err.message || 'An unexpected error occurred during login.' };
@@ -253,30 +276,42 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         password,
       });
 
-      if (authError) {
-        if (authError.message.includes('Failed to fetch')) {
-          return { error: 'Connection Error: Please check your Supabase Secrets configuration.' };
-        }
-        return { error: authError.message };
-      }
-      if (!data.user) return { error: 'Failed to create user' };
+      let userId = data.user?.id;
 
-      // 2. Create profile
+      if (authError) {
+        if (authError.message.includes('User already registered')) {
+          // If already registered, try to sign in to get the ID
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+          if (signInError) {
+            return { error: `This email is already registered. If it is yours, please login. If you believe this is an error, please contact support. (Auth Error: ${signInError.message})` };
+          }
+          userId = signInData.user?.id;
+        } else if (authError.message.includes('Failed to fetch')) {
+          return { error: 'Connection Error: Please check your Supabase Secrets configuration.' };
+        } else {
+          return { error: authError.message };
+        }
+      }
+
+      if (!userId) return { error: 'Failed to identify user. Please try again.' };
+
+      // 2. Create profile (upsert case for zombie users)
       const { error: profileError } = await supabase
         .from('profiles')
-        .insert([
-          {
-            id: data.user.id,
-            username,
-            full_name: name,
-            role,
-            school_id: schoolId,
-          },
-        ]);
+        .upsert({
+          id: userId,
+          username,
+          full_name: name,
+          role,
+          school_id: schoolId,
+        });
 
       if (profileError) {
-        return { error: `Profile Creation Failed: ${profileError.message}. Make sure you ran the SQL schema in Supabase.` };
+        return { error: `Profile Creation Failed: ${profileError.message}. Make sure you ran the SQL schema in Supabase with RLS policies enabled.` };
       }
+
+      // Re-fetch profile to update state
+      await fetchProfile(userId);
 
       return { error: null };
     } catch (err: any) {
@@ -685,6 +720,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   return (
     <StoreContext.Provider value={{
       ...state,
+      isAuthLoading,
+      profileError,
       login,
       logout,
       register,

@@ -96,13 +96,14 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         fetchProfile(session.user.id);
+        if (isSupabaseConfigured) fetchInitialData();
       } else {
         setState(prev => ({ ...prev, currentUser: null }));
       }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [isSupabaseConfigured]);
 
   async function fetchInitialData() {
     if (!isSupabaseConfigured) return;
@@ -118,57 +119,69 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       if (productsRes.error) console.error('Products fetch error:', productsRes.error);
       if (ordersRes.error) console.error('Orders fetch error:', ordersRes.error);
 
-      setState(prev => ({
-        ...prev,
-        // If we got data back from Supabase, use it to replace mock data entirely
-        // This ensures deleted items don't reapppear if they were real items.
-        products: productsRes.data ? productsRes.data.map(p => ({
-          id: p.id,
-          sellerId: p.seller_id,
-          sellerName: p.seller_name,
-          title: p.title,
-          description: p.description,
-          price: p.price,
-          stock: p.stock,
-          category: p.category,
-          imageUri: p.image_uri,
-          isService: p.is_service,
-          phone: p.phone || '',
-          rating: p.rating || 0,
-          reviewCount: p.review_count || 0
-        })) : prev.products,
-        orders: ordersRes.data ? ordersRes.data.map(o => ({
-          id: o.id,
-          buyerId: o.buyer_id,
-          sellerId: o.seller_id,
-          productId: o.product_id,
-          productTitle: o.product_title,
-          quantity: o.quantity,
-          status: o.status as OrderStatus,
-          notes: o.notes,
-          paymentMethod: o.payment_method as any,
-          phone: o.phone || '',
-          totalPrice: o.total_price,
-          createdAt: o.created_at
-        })) : prev.orders,
-        notifications: notificationsRes.data ? notificationsRes.data.map(n => ({
-          id: n.id,
-          userId: n.user_id,
-          message: n.message,
-          isRead: n.is_read,
-          type: n.type as any,
-          createdAt: n.created_at
-        })) : prev.notifications,
-        reviews: reviewsRes.data ? reviewsRes.data.map(r => ({
-          id: r.id,
-          productId: r.product_id,
-          buyerId: r.buyer_id,
-          buyerName: r.buyer_name,
-          rating: r.rating,
-          comment: r.comment,
-          createdAt: r.created_at
-        })) : prev.reviews
-      }));
+      setState(prev => {
+        const newState = { ...prev };
+        
+        if (productsRes.data) {
+          newState.products = productsRes.data.map(p => ({
+            id: p.id,
+            sellerId: p.seller_id,
+            sellerName: p.seller_name,
+            title: p.title,
+            description: p.description,
+            price: p.price,
+            stock: p.stock,
+            category: p.category,
+            imageUri: p.image_uri,
+            isService: p.is_service,
+            phone: p.phone || '',
+            rating: p.rating || 0,
+            reviewCount: p.review_count || 0
+          }));
+        }
+
+        if (ordersRes.data) {
+          newState.orders = ordersRes.data.map(o => ({
+            id: o.id,
+            buyerId: o.buyer_id,
+            sellerId: o.seller_id,
+            productId: o.product_id,
+            productTitle: o.product_title,
+            quantity: o.quantity,
+            status: o.status as OrderStatus,
+            notes: o.notes,
+            paymentMethod: o.payment_method as any,
+            phone: o.phone || '',
+            totalPrice: o.total_price,
+            createdAt: o.created_at
+          }));
+        }
+
+        if (notificationsRes.data) {
+          newState.notifications = notificationsRes.data.map(n => ({
+            id: n.id,
+            userId: n.user_id,
+            message: n.message,
+            isRead: n.is_read,
+            type: n.type as any,
+            createdAt: n.created_at
+          }));
+        }
+
+        if (reviewsRes.data) {
+          newState.reviews = reviewsRes.data.map(r => ({
+            id: r.id,
+            productId: r.product_id,
+            buyerId: r.buyer_id,
+            buyerName: r.buyer_name,
+            rating: r.rating,
+            comment: r.comment,
+            createdAt: r.created_at
+          }));
+        }
+
+        return newState;
+      });
     } catch (err) {
       console.error('Data sync failed:', err);
     }

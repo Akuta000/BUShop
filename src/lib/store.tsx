@@ -115,8 +115,13 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         supabase.from('reviews').select('*').order('created_at', { ascending: false })
       ]);
 
+      if (productsRes.error) console.error('Products fetch error:', productsRes.error);
+      if (ordersRes.error) console.error('Orders fetch error:', ordersRes.error);
+
       setState(prev => ({
         ...prev,
+        // If we got data back from Supabase, use it to replace mock data entirely
+        // This ensures deleted items don't reapppear if they were real items.
         products: productsRes.data ? productsRes.data.map(p => ({
           id: p.id,
           sellerId: p.seller_id,
@@ -165,7 +170,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         })) : prev.reviews
       }));
     } catch (err) {
-      console.error('Data fetch failed:', err);
+      console.error('Data sync failed:', err);
     }
   }
 
@@ -314,12 +319,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
       
-      // The real-time listener will replace the temp item with the real one eventually
-      // but to avoid duplication we could handle it better. 
-      // For now, fetchInitialData will clean it up.
     } catch (err) {
       console.error('Failed to add product:', err);
-      // Revert on error
+      // Revert local state on error
       setState(prev => ({ ...prev, products: prev.products.filter(p => p.id !== tempId) }));
     }
   };
@@ -341,6 +343,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       if (updates.stock !== undefined) dbUpdates.stock = updates.stock;
       if (updates.category) dbUpdates.category = updates.category;
       if (updates.imageUri) dbUpdates.image_uri = updates.imageUri;
+      if (updates.phone) dbUpdates.phone = updates.phone;
       
       const { error } = await supabase
         .from('products')
@@ -350,12 +353,13 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
     } catch (err) {
       console.error('Failed to update product:', err);
-      // We could revert here if we had the original state, 
-      // but re-fetch will fix it.
     }
   };
 
   const deleteProduct = async (id: string) => {
+    // Keep local copy for possible revert
+    const originalProducts = [...state.products];
+
     // Optimistic update
     setState(prev => ({
       ...prev,
@@ -363,10 +367,18 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     }));
 
     if (!isSupabaseConfigured) return;
+    
     try {
-      await supabase.from('products').delete().eq('id', id);
+      const { error } = await supabase.from('products').delete().eq('id', id);
+      if (error) {
+        throw error;
+      }
+      // Success - real-time listener will sync or next fetchInitialData will clean up
     } catch (err) {
-      console.error('Failed to delete product:', err);
+      console.error('Persistent Deletion Failed:', err);
+      // Revert state on failure
+      setState(prev => ({ ...prev, products: originalProducts }));
+      alert('Failed to delete from database. Please check your permissions or connection.');
     }
   };
 

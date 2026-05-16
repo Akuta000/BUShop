@@ -198,7 +198,19 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         .eq('id', userId)
         .single();
 
-      if (data && !error) {
+      if (error) {
+        console.error('Profile fetch error:', error);
+        // If the query worked but no data was found, and there was an error
+        if (error.code === 'PGRST116') { // code for "no rows found" with .single()
+           console.warn('No profile found for authenticated user. Redirecting to register or fixing state.');
+           // We might want to alert if they just tried to login
+           setState(prev => ({ ...prev, currentUser: null }));
+           return;
+        }
+        return;
+      }
+
+      if (data) {
         const user: User = {
           id: data.id,
           name: data.full_name,

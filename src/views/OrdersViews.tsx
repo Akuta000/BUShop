@@ -87,6 +87,11 @@ export function OrdersView({ initialTab }: { initialTab?: 'BUYING' | 'SELLING' }
                       <MapPin size={12}/> 
                       <span>{order.paymentMethod}</span>
                     </div>
+                    {order.phone && (
+                      <div className="flex items-center gap-2 text-[8px] sm:text-[10px] text-primary font-black uppercase tracking-widest bg-primary/5 px-2.5 py-1.5 rounded-lg border border-primary/10">
+                        <span>TEL: {order.phone}</span>
+                      </div>
+                    )}
                     <span className="text-editorial-text font-serif italic text-xl sm:text-2xl font-black ml-auto sm:ml-0">₱{order.totalPrice}</span>
                   </div>
                 </div>
@@ -169,6 +174,11 @@ export function OrdersView({ initialTab }: { initialTab?: 'BUYING' | 'SELLING' }
                   <h3 className="text-2xl font-serif font-black text-editorial-text group-hover:text-primary transition-colors italic">{order.productTitle}</h3>
                   <div className="flex flex-wrap items-center gap-6 mt-4 text-[10px] text-editorial-text/50 font-black uppercase tracking-[0.15em]">
                     <span className="flex items-center space-x-2 bg-black/5 px-3 py-1.5 rounded-lg"><Package size={14}/> <span>UNIT QTY: {order.quantity}</span></span>
+                    {order.phone && (
+                      <span className="flex items-center space-x-2 bg-primary/5 text-primary px-3 py-1.5 rounded-lg border border-primary/10">
+                        <span>CONTACT: {order.phone}</span>
+                      </span>
+                    )}
                     <span className="text-editorial-text font-serif italic text-2xl normal-case tracking-normal">₱{order.totalPrice}</span>
                   </div>
                 </div>

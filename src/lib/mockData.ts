@@ -35,7 +35,7 @@ export const MOCK_USERS: User[] = [
   },
   {
     id: 'admin-1',
-    name: 'BUSHOP Admin',
+    name: 'ShopBU Admin',
     username: 'admin',
     email: 'admin@bicol-u.edu.ph',
     role: 'ADMIN',
@@ -56,6 +56,7 @@ export const MOCK_PRODUCTS: Product[] = [
     category: 'Apparel',
     imageUri: '',
     isService: false,
+    phone: '09123456789',
     rating: 4.8,
     reviewCount: 12
   },
@@ -70,6 +71,7 @@ export const MOCK_PRODUCTS: Product[] = [
     category: 'Merchandise',
     imageUri: '',
     isService: false,
+    phone: '09987654321',
     rating: 5.0,
     reviewCount: 45
   },
@@ -84,6 +86,7 @@ export const MOCK_PRODUCTS: Product[] = [
     category: 'Services',
     imageUri: '',
     isService: true,
+    phone: '09123456789',
     rating: 4.9,
     reviewCount: 8
   },
@@ -98,6 +101,7 @@ export const MOCK_PRODUCTS: Product[] = [
     category: 'Stationery',
     imageUri: '',
     isService: false,
+    phone: '09123456789',
     rating: 4.5,
     reviewCount: 5
   },
@@ -112,6 +116,7 @@ export const MOCK_PRODUCTS: Product[] = [
     category: 'Accessory',
     imageUri: '',
     isService: false,
+    phone: '09987654321',
     rating: 4.7,
     reviewCount: 20
   }
@@ -128,6 +133,7 @@ export const MOCK_ORDERS: Order[] = [
     status: 'COMPLETED',
     notes: 'Please pick up at the CS Building Lobby.',
     paymentMethod: 'COD',
+    phone: '09444444444',
     totalPrice: 850,
     createdAt: new Date(Date.now() - 86400000 * 2).toISOString()
   },
@@ -141,6 +147,7 @@ export const MOCK_ORDERS: Order[] = [
     status: 'PENDING',
     notes: 'Meet up at the student plaza at 3pm.',
     paymentMethod: 'MEETUP',
+    phone: '09444444444',
     totalPrice: 100,
     createdAt: new Date().toISOString()
   }

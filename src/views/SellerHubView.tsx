@@ -270,7 +270,8 @@ function AddProductModal({ onClose }: { onClose: () => void }) {
     stock: '',
     category: 'Merchandise',
     isService: false,
-    imageUri: ''
+    imageUri: '',
+    phone: ''
   });
 
   const handleImageSelected = async (file: File) => {
@@ -301,7 +302,8 @@ function AddProductModal({ onClose }: { onClose: () => void }) {
       stock: parseInt(formData.stock),
       category: formData.category,
       isService: formData.isService,
-      imageUri: formData.imageUri
+      imageUri: formData.imageUri,
+      phone: formData.phone
     });
     onClose();
   };
@@ -347,6 +349,18 @@ function AddProductModal({ onClose }: { onClose: () => void }) {
                   value={formData.title} 
                   onChange={e => setFormData({...formData, title: e.target.value.toUpperCase()})} 
                   className="w-full bg-white border border-black/5 rounded-[32px] px-8 py-5 text-sm font-black focus:ring-4 focus:ring-primary/10 outline-none transition-all placeholder:text-editorial-text/10 uppercase tracking-widest"
+                />
+              </div>
+
+              <div className="group">
+                <label className="block text-[10px] font-black text-editorial-text/30 uppercase tracking-[0.2em] mb-3 ml-1">Contact Number (Seller)</label>
+                <input 
+                  type="tel"
+                  placeholder="09XXXXXXXXX" 
+                  required 
+                  value={formData.phone} 
+                  onChange={e => setFormData({...formData, phone: e.target.value})} 
+                  className="w-full bg-white border border-black/5 rounded-[32px] px-8 py-5 text-sm font-black focus:ring-4 focus:ring-primary/10 outline-none transition-all placeholder:text-editorial-text/10"
                 />
               </div>
 

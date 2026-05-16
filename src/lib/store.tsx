@@ -24,7 +24,7 @@ interface AppContextType extends AppState {
   addProduct: (product: Omit<Product, 'id' | 'sellerId' | 'sellerName' | 'rating' | 'reviewCount'>) => void;
   updateProduct: (id: string, updates: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
-  placeOrder: (productId: string, quantity: number, notes: string, paymentMethod: 'COD' | 'MEETUP') => void;
+  placeOrder: (productId: string, quantity: number, notes: string, paymentMethod: 'COD' | 'MEETUP', phone: string) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   updateProfile: (updates: Partial<User>) => Promise<{ error: any }>;
   addReview: (productId: string, rating: number, comment: string) => void;
@@ -128,6 +128,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           category: p.category,
           imageUri: p.image_uri,
           isService: p.is_service,
+          phone: p.phone || '',
           rating: p.rating || 0,
           reviewCount: p.review_count || 0
         })) : prev.products,
@@ -141,6 +142,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           status: o.status as OrderStatus,
           notes: o.notes,
           paymentMethod: o.payment_method as any,
+          phone: o.phone || '',
           totalPrice: o.total_price,
           createdAt: o.created_at
         })) : prev.orders,
@@ -307,6 +309,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         category: product.category,
         image_uri: product.imageUri,
         is_service: product.isService,
+        phone: product.phone,
       }]).select().single();
 
       if (error) throw error;
@@ -367,7 +370,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const placeOrder = async (productId: string, quantity: number, notes: string, paymentMethod: 'COD' | 'MEETUP') => {
+  const placeOrder = async (productId: string, quantity: number, notes: string, paymentMethod: 'COD' | 'MEETUP', phone: string) => {
     if (!state.currentUser) return;
     const product = state.products.find(p => p.id === productId);
     if (!product) return;
@@ -384,6 +387,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       status: 'PENDING',
       notes,
       paymentMethod,
+      phone,
       totalPrice: product.price * quantity,
       createdAt: new Date().toISOString()
     };
@@ -407,6 +411,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         status: 'PENDING',
         notes,
         payment_method: paymentMethod,
+        phone,
         total_price: product.price * quantity
       }]);
 

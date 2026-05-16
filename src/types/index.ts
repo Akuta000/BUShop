@@ -29,6 +29,7 @@ export interface Product {
   category: string;
   imageUri: string;
   isService: boolean;
+  phone: string;
   rating: number;
   reviewCount: number;
 }
@@ -43,6 +44,7 @@ export interface Order {
   status: OrderStatus;
   notes: string;
   paymentMethod: 'COD' | 'MEETUP' | 'GCASH' | 'PAYPAL';
+  phone: string;
   totalPrice: number;
   createdAt: string;
 }

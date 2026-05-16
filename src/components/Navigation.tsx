@@ -95,7 +95,7 @@ export function SideNav({ activeTab, onTabChange }: { activeTab: string; onTabCh
   return (
     <aside className="hidden md:flex flex-col w-72 h-screen fixed left-0 top-0 bg-white border-r border-black/5 p-10 z-40">
       <div className="flex items-center space-x-3 mb-16">
-        <h1 className="text-4xl font-serif font-black tracking-tighter italic text-primary">BUSHOP</h1>
+        <h1 className="text-4xl font-serif font-black tracking-tighter italic text-primary">ShopBU</h1>
       </div>
 
       <div className="space-y-3 flex-grow">

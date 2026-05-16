@@ -323,10 +323,12 @@ export function ProductDetail({ product, onClose }: { product: Product; onClose:
   const [qty, setQty] = useState(1);
   const [method, setMethod] = useState<'COD' | 'MEETUP' | 'GCASH' | 'PAYPAL'>('COD');
   const [notes, setNotes] = useState('');
+  const [phone, setPhone] = useState('');
   const [isOrdering, setIsOrdering] = useState(false);
 
   const handleOrder = () => {
-    placeOrder(product.id, qty, notes, method);
+    if (!phone) return;
+    placeOrder(product.id, qty, notes, method, phone);
     setIsOrdering(true);
     setTimeout(() => {
       onClose();
@@ -418,6 +420,9 @@ export function ProductDetail({ product, onClose }: { product: Product; onClose:
                   <p className="font-black text-editorial-text text-sm sm:text-lg truncate">{product.sellerName}</p>
                   <div className="w-3 h-3 sm:w-4 sm:h-4 bg-primary rounded-full flex items-center justify-center text-[6px] sm:text-[8px] text-white flex-shrink-0">✓</div>
                 </div>
+                {product.phone && (
+                  <p className="text-[10px] font-black text-primary mt-1">{product.phone}</p>
+                )}
               </div>
               <div className="text-right flex-shrink-0">
                  <p className="text-[8px] sm:text-[10px] font-black text-editorial-text/30 uppercase tracking-[0.2em] mb-0.5 sm:mb-1 text-right">Stock</p>
@@ -446,6 +451,18 @@ export function ProductDetail({ product, onClose }: { product: Product; onClose:
                      <button onClick={() => setMethod('GCASH')} className={`px-3 py-1.5 rounded-full text-[8px] sm:text-[9px] font-black tracking-widest uppercase transition-all ${method === 'GCASH' ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/20' : 'text-editorial-text/40'}`}>GCASH</button>
                    </div>
                 </div>
+              </div>
+
+              <div>
+                <p className="text-[10px] font-black text-editorial-text/30 uppercase tracking-[0.2em] mb-3">Contact Number (Receiver)</p>
+                <input
+                   type="tel"
+                   required
+                   value={phone}
+                   onChange={e => setPhone(e.target.value)}
+                   placeholder="09XXXXXXXXX"
+                   className="w-full bg-white border border-black/5 rounded-full px-8 py-5 text-sm font-black focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                />
               </div>
 
               <div>

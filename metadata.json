@@ -1,5 +1,5 @@
 {
-  "name": "ShopBU",
+  "name": "BUSHOP",
   "description": "A centralized campus e-commerce platform for Bicol University, featuring Supabase-powered authentication and student/seller profiles.",
   "requestFramePermissions": ["camera"],
   "majorCapabilities": [

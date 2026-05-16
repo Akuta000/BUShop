@@ -35,7 +35,7 @@ export const MOCK_USERS: User[] = [
   },
   {
     id: 'admin-1',
-    name: 'ShopBU Admin',
+    name: 'BUSHOP Admin',
     username: 'admin',
     email: 'admin@bicol-u.edu.ph',
     role: 'ADMIN',

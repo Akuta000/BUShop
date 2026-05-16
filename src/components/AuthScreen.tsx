@@ -58,7 +58,7 @@ export function AuthScreen() {
               <GraduationCap size={40} strokeWidth={1.5} className="hidden sm:block" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-4xl font-serif font-black tracking-tighter italic text-primary">ShopBU</h1>
+              <h1 className="text-2xl sm:text-4xl font-serif font-black tracking-tighter italic text-primary">BUSHOP</h1>
               <p className="text-[8px] sm:text-[10px] text-editorial-text/30 font-black uppercase tracking-[0.3em]">Marketplace</p>
             </div>
           </div>

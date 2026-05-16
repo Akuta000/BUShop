@@ -63,18 +63,14 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       fetchInitialData();
     }
 
-    // 2. Auth Listener (handles initial session too)
+    // 2. Auth Listener (only handle explicit sign-ins)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
-      if (session?.user) {
-        // Fetch profile if user just logged in or it's the initial session
-        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-          // Await ONLY profile for identity sync to show the UI faster
-          await fetchProfile(session.user.id, session.user.email);
-          // Background data fetch
-          if (isSupabaseConfigured) fetchInitialData();
-        }
+      if (session?.user && event === 'SIGNED_IN') {
+        // Fetch profile only on explicit sign-in
+        await fetchProfile(session.user.id, session.user.email);
+        if (isSupabaseConfigured) fetchInitialData();
       } else if (event === 'SIGNED_OUT') {
         setState(prev => ({ ...prev, currentUser: null }));
       }

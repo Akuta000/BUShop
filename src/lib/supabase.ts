@@ -37,4 +37,8 @@ if (supabaseUrl.endsWith('/')) {
 const finalUrl = supabaseUrl || 'https://placeholder.supabase.co';
 const finalKey = (supabaseAnonKey?.trim()?.replace(/["']/g, '')) || 'placeholder';
 
-export const supabase = createClient(finalUrl, finalKey);
+export const supabase = createClient(finalUrl, finalKey, {
+  auth: {
+    persistSession: false
+  }
+});

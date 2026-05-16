@@ -56,62 +56,65 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
                               !import.meta.env.VITE_SUPABASE_URL.includes('placeholder.supabase.co');
 
   useEffect(() => {
-    // 1. Initial Auth Check
-    setIsAuthLoading(true);
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        fetchProfile(session.user.id).finally(() => setIsAuthLoading(false));
-      } else {
-        setIsAuthLoading(false);
-      }
-    });
+    let mounted = true;
 
-    // 2. Real-time Subscriptions
+    // 1. Initial Data Fetch (independent of auth)
     if (isSupabaseConfigured) {
       fetchInitialData();
+    }
 
-      const productChannel = supabase
+    // 2. Auth Listener (handles initial session too)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+
+      if (session?.user) {
+        // Fetch profile if user just logged in or it's the initial session
+        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+          // Await ONLY profile for identity sync to show the UI faster
+          await fetchProfile(session.user.id, session.user.email);
+          // Background data fetch
+          if (isSupabaseConfigured) fetchInitialData();
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setState(prev => ({ ...prev, currentUser: null }));
+      }
+
+      setIsAuthLoading(false);
+    });
+
+    // 3. Real-time Subscriptions
+    let productChannel: any, orderChannel: any, notificationChannel: any, reviewChannel: any;
+    
+    if (isSupabaseConfigured) {
+      productChannel = supabase
         .channel('public:products')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, fetchInitialData)
         .subscribe();
 
-      const orderChannel = supabase
+      orderChannel = supabase
         .channel('public:orders')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, fetchInitialData)
         .subscribe();
 
-      const notificationChannel = supabase
+      notificationChannel = supabase
         .channel('public:notifications')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, fetchInitialData)
         .subscribe();
 
-      const reviewChannel = supabase
+      reviewChannel = supabase
         .channel('public:reviews')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, fetchInitialData)
         .subscribe();
-
-      return () => {
-        supabase.removeChannel(productChannel);
-        supabase.removeChannel(orderChannel);
-        supabase.removeChannel(notificationChannel);
-        supabase.removeChannel(reviewChannel);
-      };
     }
-  }, [isSupabaseConfigured]);
 
-  useEffect(() => {
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-        if (isSupabaseConfigured) fetchInitialData();
-      } else {
-        setState(prev => ({ ...prev, currentUser: null }));
-      }
-      setIsAuthLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+      if (productChannel) supabase.removeChannel(productChannel);
+      if (orderChannel) supabase.removeChannel(orderChannel);
+      if (notificationChannel) supabase.removeChannel(notificationChannel);
+      if (reviewChannel) supabase.removeChannel(reviewChannel);
+    };
   }, [isSupabaseConfigured]);
 
   async function fetchInitialData() {
@@ -196,12 +199,17 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, email?: string) => {
     if (!isSupabaseConfigured) return;
     setProfileError(null);
     
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      let authEmail = email;
+      if (!authEmail) {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        authEmail = authUser?.email;
+      }
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -222,7 +230,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           id: data.id,
           name: data.full_name,
           username: data.username,
-          email: session?.user?.email || '',
+          email: authEmail || '',
           role: data.role as UserRole,
           schoolId: data.school_id,
           createdAt: data.created_at,
@@ -246,7 +254,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
       if (authData.user) {
         // Wait for profile fetch to complete
-        await fetchProfile(authData.user.id);
+        await fetchProfile(authData.user.id, authData.user.email);
         
         // If profile is still null after login and fetch, it means PGRST116 happened
         const currentSession = await supabase.auth.getSession();
@@ -321,8 +329,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         return { error: `Profile Creation Failed: ${profileError.message}` };
       }
 
-      // Re-fetch profile to update state
-      await fetchProfile(userId);
+      // Re-fetch profile to update state (pass email we have)
+      await fetchProfile(userId, email);
 
       return { error: null };
     } catch (err: any) {

@@ -23,7 +23,20 @@ export function AuthScreen() {
                       !!import.meta.env.VITE_SUPABASE_ANON_KEY && 
                       !import.meta.env.VITE_SUPABASE_URL.includes('placeholder.supabase.co');
 
-  if (isAuthLoading) {
+  const [showLoading, setShowLoading] = useState(false);
+
+  // Only show loading indicator if it takes more than 300ms
+  React.useEffect(() => {
+    let timer: any;
+    if (isAuthLoading) {
+      timer = setTimeout(() => setShowLoading(true), 300);
+    } else {
+      setShowLoading(false);
+    }
+    return () => clearTimeout(timer);
+  }, [isAuthLoading]);
+
+  if (isAuthLoading && showLoading) {
     return (
       <div className="min-h-screen bg-editorial-bg flex items-center justify-center p-4">
         <div className="flex flex-col items-center space-y-4">
@@ -32,6 +45,11 @@ export function AuthScreen() {
         </div>
       </div>
     );
+  }
+
+  // If loading but not showing yet, just show white screen to avoid flicker
+  if (isAuthLoading) {
+    return <div className="min-h-screen bg-editorial-bg" />;
   }
 
   if (import.meta.env.DEV) {

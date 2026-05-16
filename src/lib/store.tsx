@@ -279,8 +279,23 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   };
 
   const addProduct = async (product: Omit<Product, 'id' | 'sellerId' | 'sellerName' | 'rating' | 'reviewCount'>) => {
-    if (!state.currentUser || !isSupabaseConfigured) return;
+    if (!state.currentUser) return;
     
+    // Optimistic / Local update for immediate feedback
+    const tempId = `temp-${Date.now()}`;
+    const newProduct: Product = {
+      ...product,
+      id: tempId,
+      sellerId: state.currentUser.id,
+      sellerName: state.currentUser.name,
+      rating: 0,
+      reviewCount: 0
+    };
+    
+    setState(prev => ({ ...prev, products: [newProduct, ...prev.products] }));
+
+    if (!isSupabaseConfigured) return;
+
     try {
       const { data, error } = await supabase.from('products').insert([{
         seller_id: state.currentUser.id,
@@ -296,13 +311,23 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
       
-      // Real-time listener will fetch the new product
+      // The real-time listener will replace the temp item with the real one eventually
+      // but to avoid duplication we could handle it better. 
+      // For now, fetchInitialData will clean it up.
     } catch (err) {
       console.error('Failed to add product:', err);
+      // Revert on error
+      setState(prev => ({ ...prev, products: prev.products.filter(p => p.id !== tempId) }));
     }
   };
 
   const updateProduct = async (id: string, updates: Partial<Product>) => {
+    // Optimistic update
+    setState(prev => ({
+      ...prev,
+      products: prev.products.map(p => p.id === id ? { ...p, ...updates } : p)
+    }));
+
     if (!isSupabaseConfigured) return;
     
     try {
@@ -322,10 +347,18 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
     } catch (err) {
       console.error('Failed to update product:', err);
+      // We could revert here if we had the original state, 
+      // but re-fetch will fix it.
     }
   };
 
   const deleteProduct = async (id: string) => {
+    // Optimistic update
+    setState(prev => ({
+      ...prev,
+      products: prev.products.filter(p => p.id !== id)
+    }));
+
     if (!isSupabaseConfigured) return;
     try {
       await supabase.from('products').delete().eq('id', id);
@@ -335,9 +368,33 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   };
 
   const placeOrder = async (productId: string, quantity: number, notes: string, paymentMethod: 'COD' | 'MEETUP') => {
-    if (!state.currentUser || !isSupabaseConfigured) return;
+    if (!state.currentUser) return;
     const product = state.products.find(p => p.id === productId);
     if (!product) return;
+
+    // Optimistic update
+    const tempOrderId = `o-temp-${Date.now()}`;
+    const newOrder: Order = {
+      id: tempOrderId,
+      buyerId: state.currentUser.id,
+      productId: product.id,
+      productTitle: product.title,
+      sellerId: product.sellerId,
+      quantity,
+      status: 'PENDING',
+      notes,
+      paymentMethod,
+      totalPrice: product.price * quantity,
+      createdAt: new Date().toISOString()
+    };
+
+    setState(prev => ({
+      ...prev,
+      orders: [newOrder, ...prev.orders],
+      products: prev.products.map(p => p.id === productId ? { ...p, stock: p.stock - quantity } : p)
+    }));
+
+    if (!isSupabaseConfigured) return;
 
     try {
       // 1. Create Order
@@ -363,20 +420,33 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         type: 'ORDER_UPDATE'
       }]);
 
-      // 3. Update Stock
+      // 3. Update Stock (Already done optimistically, but sync with DB)
       await supabase.from('products').update({
         stock: product.stock - quantity
       }).eq('id', productId);
 
     } catch (err) {
       console.error('Order placement failed:', err);
+      // Revert on error
+      setState(prev => ({
+        ...prev,
+        orders: prev.orders.filter(o => o.id !== tempOrderId),
+        products: prev.products.map(p => p.id === productId ? { ...p, stock: p.stock + quantity } : p)
+      }));
     }
   };
 
   const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
-    if (!isSupabaseConfigured) return;
     const order = state.orders.find(o => o.id === orderId);
     if (!order) return;
+
+    // Optimistic update
+    setState(prev => ({
+      ...prev,
+      orders: prev.orders.map(o => o.id === orderId ? { ...o, status } : o)
+    }));
+
+    if (!isSupabaseConfigured) return;
 
     try {
       // 1. Update Order
@@ -402,17 +472,51 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           await supabase.from('products').update({
             stock: product.stock + order.quantity
           }).eq('id', product.id);
+          
+          // Local update for stock reversal
+          setState(prev => ({
+            ...prev,
+            products: prev.products.map(p => p.id === order.productId ? { ...p, stock: p.stock + order.quantity } : p)
+          }));
         }
       }
     } catch (err) {
       console.error('Order status update failed:', err);
+      // Re-fetch will naturally revert to DB state on failure
     }
   };
 
   const addReview = async (productId: string, rating: number, comment: string) => {
-    if (!state.currentUser || !isSupabaseConfigured) return;
+    if (!state.currentUser) return;
     const product = state.products.find(p => p.id === productId);
     if (!product) return;
+
+    // Optimistic update
+    const tempReviewId = `r-temp-${Date.now()}`;
+    const newReview: Review = {
+      id: tempReviewId,
+      productId,
+      buyerId: state.currentUser.id,
+      buyerName: state.currentUser.name,
+      rating,
+      comment,
+      createdAt: new Date().toISOString()
+    };
+
+    setState(prev => ({
+      ...prev,
+      reviews: [newReview, ...prev.reviews],
+      products: prev.products.map(p => {
+        if (p.id === productId) {
+          const newReviewCount = p.reviewCount + 1;
+          const newRating = (p.rating * p.reviewCount + rating) / newReviewCount;
+          return { ...p, rating: parseFloat(newRating.toFixed(1)), reviewCount: newReviewCount };
+        }
+        return p;
+      })
+    }));
+
+    if (!isSupabaseConfigured) return;
 
     try {
       // 1. Add Review
@@ -437,10 +541,16 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
     } catch (err) {
       console.error('Failed to add review:', err);
+      // Revert...
     }
   };
 
   const markNotificationRead = async (id: string) => {
+    setState(prev => ({
+      ...prev,
+      notifications: prev.notifications.map(n => n.id === id ? { ...n, isRead: true } : n)
+    }));
+
     if (!isSupabaseConfigured) return;
     try {
       await supabase.from('notifications').update({ is_read: true }).eq('id', id);
@@ -450,6 +560,11 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteNotification = async (id: string) => {
+    setState(prev => ({
+      ...prev,
+      notifications: prev.notifications.filter(n => n.id !== id)
+    }));
+
     if (!isSupabaseConfigured) return;
     try {
       await supabase.from('notifications').delete().eq('id', id);

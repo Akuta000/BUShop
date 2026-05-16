@@ -64,13 +64,23 @@ export function SellerHubView() {
           <div className="flex items-center space-x-3 text-primary text-[10px] font-black uppercase tracking-widest">
             {sellingOrders.some(o => o.status === 'PENDING') ? (
               <>
-                <Clock size={14} />
+                <Clock size={14} className="animate-pulse" />
                 <span>Awaiting Authorization</span>
+              </>
+            ) : sellingOrders.some(o => o.status === 'CONFIRMED' || o.status === 'READY') ? (
+              <>
+                <Package size={14} className="text-indigo-400" />
+                <span>Action Required: Fulfillment</span>
+              </>
+            ) : sellingOrders.some(o => o.status === 'COMPLETED') ? (
+              <>
+                <ShoppingBag size={14} className="text-green-500" />
+                <span>All Orders Synchronized</span>
               </>
             ) : (
               <>
                 <Package size={14} />
-                <span>Processing Order Flow</span>
+                <span>Waiting for Transactions</span>
               </>
             )}
           </div>

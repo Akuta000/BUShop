@@ -326,13 +326,15 @@ export function ProductDetail({ product, onClose }: { product: Product; onClose:
   const [phone, setPhone] = useState('');
   const [isOrdering, setIsOrdering] = useState(false);
 
-  const handleOrder = () => {
+  const handleOrder = async () => {
     if (!phone) return;
-    placeOrder(product.id, qty, notes, method, phone);
-    setIsOrdering(true);
-    setTimeout(() => {
-      onClose();
-    }, 2000);
+    const success = await placeOrder(product.id, qty, notes, method, phone);
+    if (success) {
+      setIsOrdering(true);
+      setTimeout(() => {
+        onClose();
+      }, 2000);
+    }
   };
 
   if (isOrdering) {

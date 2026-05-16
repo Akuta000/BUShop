@@ -129,14 +129,14 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
             sellerName: p.seller_name,
             title: p.title,
             description: p.description,
-            price: p.price,
-            stock: p.stock,
+            price: Number(p.price),
+            stock: Number(p.stock),
             category: p.category,
             imageUri: p.image_uri,
             isService: p.is_service,
             phone: p.phone || '',
-            rating: p.rating || 0,
-            reviewCount: p.review_count || 0
+            rating: Number(p.rating || 0),
+            reviewCount: Number(p.review_count || 0)
           }));
         }
 
@@ -147,12 +147,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
             sellerId: o.seller_id,
             productId: o.product_id,
             productTitle: o.product_title,
-            quantity: o.quantity,
+            quantity: Number(o.quantity),
             status: o.status as OrderStatus,
             notes: o.notes,
             paymentMethod: o.payment_method as any,
             phone: o.phone || '',
-            totalPrice: o.total_price,
+            totalPrice: Number(o.total_price),
             createdAt: o.created_at
           }));
         }
@@ -191,6 +191,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     if (!isSupabaseConfigured) return;
     
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -202,7 +203,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           id: data.id,
           name: data.full_name,
           username: data.username,
-          email: '', // Email is usually managed by auth, we can append it if needed
+          email: session?.user?.email || '',
           role: data.role as UserRole,
           schoolId: data.school_id,
           createdAt: data.created_at,
@@ -396,9 +397,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   };
 
   const placeOrder = async (productId: string, quantity: number, notes: string, paymentMethod: 'COD' | 'MEETUP', phone: string) => {
-    if (!state.currentUser) return;
+    if (!state.currentUser) {
+      alert('Please log in to place an order.');
+      return false;
+    }
     const product = state.products.find(p => p.id === productId);
-    if (!product) return;
+    if (!product) return false;
 
     // Optimistic update
     const tempOrderId = `o-temp-${Date.now()}`;
@@ -423,7 +427,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       products: prev.products.map(p => p.id === productId ? { ...p, stock: p.stock - quantity } : p)
     }));
 
-    if (!isSupabaseConfigured) return;
+    if (!isSupabaseConfigured) return true;
 
     try {
       // 1. Create Order
@@ -455,6 +459,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         stock: product.stock - quantity
       }).eq('id', productId);
 
+      await fetchInitialData();
+      return true;
     } catch (err) {
       console.error('Order placement failed:', err);
       // Revert on error
@@ -463,6 +469,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         orders: prev.orders.filter(o => o.id !== tempOrderId),
         products: prev.products.map(p => p.id === productId ? { ...p, stock: p.stock + quantity } : p)
       }));
+      alert('Order failed to reach the database. Please check your connection.');
+      return false;
     }
   };
 
@@ -521,6 +529,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           }));
         }
       }
+      await fetchInitialData();
     } catch (err) {
       console.error('Order status update failed:', err);
       // Re-fetch will naturally revert to DB state on failure

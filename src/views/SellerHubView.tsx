@@ -176,22 +176,31 @@ export function SellerHubView() {
                   </div>
                   <div className="flex items-center space-x-3">
                     <StatusBadge status={order.status} />
-                    <div className="relative">
-                      <select
-                        value={order.status}
-                        onChange={(e) => updateOrderStatus(order.id, e.target.value as any)}
-                        className="absolute inset-0 opacity-0 cursor-pointer"
+                    {order.status === 'PENDING' ? (
+                      <button 
+                        onClick={() => updateOrderStatus(order.id, 'CONFIRMED')}
+                        className="bg-primary text-white text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl hover:bg-black transition-all shadow-lg shadow-primary/20"
                       >
-                        <option value="PENDING">PENDING</option>
-                        <option value="CONFIRMED">CONFIRMED</option>
-                        <option value="READY">READY</option>
-                        <option value="COMPLETED">COMPLETED</option>
-                        <option value="CANCELLED">CANCELLED</option>
-                      </select>
-                      <div className="w-8 h-8 rounded-full bg-editorial-bg flex items-center justify-center text-editorial-text/40 hover:bg-primary hover:text-white transition-colors">
-                        <ChevronRight size={14} />
+                        Confirm
+                      </button>
+                    ) : (
+                      <div className="relative">
+                        <select
+                          value={order.status}
+                          onChange={(e) => updateOrderStatus(order.id, e.target.value as any)}
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                        >
+                          <option value="PENDING">PENDING</option>
+                          <option value="CONFIRMED">CONFIRMED</option>
+                          <option value="READY">READY</option>
+                          <option value="COMPLETED">COMPLETED</option>
+                          <option value="CANCELLED">CANCELLED</option>
+                        </select>
+                        <div className="w-8 h-8 rounded-full bg-editorial-bg flex items-center justify-center text-editorial-text/40 hover:bg-primary hover:text-white transition-colors">
+                          <ChevronRight size={14} />
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               ))

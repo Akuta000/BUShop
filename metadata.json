@@ -1,0 +1,8 @@
+{
+  "name": "ShopBU",
+  "description": "A centralized campus e-commerce platform for Bicol University, featuring Supabase-powered authentication and student/seller profiles.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
